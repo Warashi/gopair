@@ -85,7 +85,7 @@ func compact(s []map[string]int, b map[string]int) ([]map[string]int, map[string
 	maxScore, maxScoreI, maxScoreJ := math.MinInt, 0, 0
 	for i := 0; i < len(s); i++ {
 		for j := i + 1; j < len(s); j++ {
-			if ok := mergable(s[i], s[j]); !ok {
+			if !mergable(s[i], s[j]) {
 				continue
 			}
 			if score := score(s, b, i, j); maxScore < score {
@@ -103,12 +103,31 @@ func compact(s []map[string]int, b map[string]int) ([]map[string]int, map[string
 }
 
 func score(s []map[string]int, b map[string]int, i, j int) int {
+	if len(s) < 100 {
+		return scoreHeavy(s, i, j)
+	}
 	var score int
 	for k := range s[i] {
 		score += b[k]
 	}
 	for k := range s[j] {
 		score += b[k]
+	}
+	return score
+}
+
+func scoreHeavy(s []map[string]int, i, j int) int {
+	s = slices.Clone(s)
+	s[i] = merge(s[i], s[j])
+	s = slices.Delete(s, j, j+1)
+
+	var score int
+	for i := 0; i < len(s); i++ {
+		for j := i + 1; j < len(s); j++ {
+			if mergable(s[i], s[j]) {
+				score++
+			}
+		}
 	}
 	return score
 }
