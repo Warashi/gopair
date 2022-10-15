@@ -62,3 +62,15 @@ loop:
 	}
 	return false
 }
+
+func TestGenerate2(t *testing.T) {
+	s := gopair.Seeds{
+		"a": 5,
+		"b": 5,
+		"c": 5,
+		"d": 5,
+		"e": 5,
+	}
+	got := s.Generate(2)
+	t.Log(len(got))
+}

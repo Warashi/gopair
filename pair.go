@@ -1,6 +1,9 @@
 package gopair
 
 import (
+	"log"
+	"math"
+
 	"golang.org/x/exp/maps"
 	"golang.org/x/exp/slices"
 )
@@ -26,15 +29,28 @@ func (s Seeds) Generate(order int) []map[string]int {
 		combs = append(combs, s.comb(k)...)
 	}
 
-	combs = compact(combs)
+	bias := bias(combs)
 
+	for {
+		log.Println(len(combs))
+		var newc []map[string]int
+		newc, bias = compact(combs, bias)
+		if len(newc) == len(combs) {
+			break
+		}
+		combs = newc
+	}
+
+	var count int
 	for _, c := range combs {
 		for _, k := range keys {
 			if _, ok := c[k]; !ok {
+				count++
 				c[k] = 0
 			}
 		}
 	}
+	log.Println("ゼロ埋めの数", count)
 	return combs
 }
 
@@ -64,24 +80,57 @@ func (s Seeds) comb(keys []string) []map[string]int {
 	return combinations
 }
 
-func compact(s []map[string]int) []map[string]int {
+func compact(s []map[string]int, b map[string]int) ([]map[string]int, map[string]int) {
+	log.Println(len(s))
+	maxScore, maxScoreI, maxScoreJ := math.MinInt, 0, 0
 	for i := 0; i < len(s); i++ {
-	inner:
-		for j := len(s) - 1; i < j; j-- {
-			im := s[i]
-			jm := s[j]
-			for ik, iv := range im {
-				jv, ok := jm[ik]
-				if ok && iv != jv {
-					// not margeable
-					continue inner
-				}
+		for j := i + 1; j < len(s); j++ {
+			if ok := mergable(s[i], s[j]); !ok {
+				continue
 			}
-			s[i] = merge(im, jm)
-			s = slices.Delete(s, j, j+1)
+			if score := score(s, b, i, j); maxScore < score {
+				maxScore, maxScoreI, maxScoreJ = score, i, j
+			}
 		}
 	}
-	return s
+	if maxScore == math.MinInt {
+		return s, b
+	}
+	i, j := maxScoreI, maxScoreJ
+	s[i] = merge(s[i], s[j])
+	s = slices.Delete(s, j, j+1)
+	return s, bias(s)
+}
+
+func score(s []map[string]int, b map[string]int, i, j int) int {
+	var score int
+	for k := range s[i] {
+		score += b[k]
+	}
+	for k := range s[j] {
+		score += b[k]
+	}
+	return score
+}
+
+func bias(s []map[string]int) map[string]int {
+	score := make(map[string]int)
+	for _, ss := range s {
+		for k := range ss {
+			score[k]++
+		}
+	}
+	return score
+}
+
+func mergable[K comparable, V comparable](a, b map[K]V) (ok bool) {
+	for k, av := range a {
+		bv, ok := b[k]
+		if ok && av != bv {
+			return false
+		}
+	}
+	return true
 }
 
 func merge[K comparable, V any](a, b map[K]V) map[K]V {
