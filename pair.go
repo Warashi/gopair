@@ -67,7 +67,7 @@ func (s Seeds) comb(keys []string) []map[string]int {
 func compact(s []map[string]int) []map[string]int {
 	for i := 0; i < len(s); i++ {
 	inner:
-		for j := i + 1; j < len(s); j++ {
+		for j := len(s) - 1; i < j; j-- {
 			im := s[i]
 			jm := s[j]
 			for ik, iv := range im {
