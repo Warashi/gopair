@@ -1,6 +1,7 @@
 package gopair
 
 import (
+	"encoding/json"
 	"log"
 	"math"
 
@@ -8,9 +9,17 @@ import (
 	"golang.org/x/exp/slices"
 )
 
-type Seeds map[string]int
+type (
+	Seeds     map[string]int
+	Candidate map[string]int
+)
 
-func (s Seeds) Generate(order int) []map[string]int {
+func (c Candidate) String() string {
+	b, _ := json.Marshal(c)
+	return string(b)
+}
+
+func (s Seeds) Generate(order int) []Candidate {
 	if len(s) < order {
 		return nil
 	}
@@ -24,7 +33,7 @@ func (s Seeds) Generate(order int) []map[string]int {
 		keycombs = append(keycombs, c.Value())
 	}
 
-	var combs []map[string]int
+	var combs []Candidate
 	for _, k := range keycombs {
 		combs = append(combs, s.comb(k)...)
 	}
@@ -33,7 +42,7 @@ func (s Seeds) Generate(order int) []map[string]int {
 
 	for {
 		log.Println(len(combs))
-		var newc []map[string]int
+		var newc []Candidate
 		newc, bias = compact(combs, bias)
 		if len(newc) == len(combs) {
 			break
@@ -62,11 +71,11 @@ func copyMap[K comparable, V any](src map[K]V) map[K]V {
 	return dst
 }
 
-func (s Seeds) comb(keys []string) []map[string]int {
+func (s Seeds) comb(keys []string) []Candidate {
 	if len(keys) == 0 {
-		return []map[string]int{{}}
+		return make([]Candidate, 1)
 	}
-	var combinations []map[string]int
+	var combinations []Candidate
 
 	mid := s.comb(keys[1:])
 	k := keys[0]
@@ -80,7 +89,7 @@ func (s Seeds) comb(keys []string) []map[string]int {
 	return combinations
 }
 
-func compact(s []map[string]int, b map[string]int) ([]map[string]int, map[string]int) {
+func compact(s []Candidate, b map[string]int) ([]Candidate, map[string]int) {
 	log.Println(len(s))
 	maxScore, maxScoreI, maxScoreJ := math.MinInt, 0, 0
 	for i := 0; i < len(s); i++ {
@@ -98,11 +107,12 @@ func compact(s []map[string]int, b map[string]int) ([]map[string]int, map[string
 	}
 	i, j := maxScoreI, maxScoreJ
 	s[i] = merge(s[i], s[j])
-	s = slices.Delete(s, j, j+1)
+	s[j] = s[len(s)-1]
+	s = s[:len(s)-1]
 	return s, bias(s)
 }
 
-func score(s []map[string]int, b map[string]int, i, j int) int {
+func score(s []Candidate, b map[string]int, i, j int) int {
 	if len(s) < 100 {
 		return scoreHeavy(s, i, j)
 	}
@@ -116,10 +126,11 @@ func score(s []map[string]int, b map[string]int, i, j int) int {
 	return score
 }
 
-func scoreHeavy(s []map[string]int, i, j int) int {
+func scoreHeavy(s []Candidate, i, j int) int {
 	s = slices.Clone(s)
 	s[i] = merge(s[i], s[j])
-	s = slices.Delete(s, j, j+1)
+	s[j] = s[len(s)-1]
+	s = s[:len(s)-1]
 
 	var score int
 	for i := 0; i < len(s); i++ {
@@ -132,7 +143,7 @@ func scoreHeavy(s []map[string]int, i, j int) int {
 	return score
 }
 
-func bias(s []map[string]int) map[string]int {
+func bias(s []Candidate) map[string]int {
 	score := make(map[string]int)
 	for _, ss := range s {
 		for k := range ss {
@@ -142,7 +153,7 @@ func bias(s []map[string]int) map[string]int {
 	return score
 }
 
-func mergable[K comparable, V comparable](a, b map[K]V) (ok bool) {
+func mergable[K comparable, V comparable, M ~map[K]V](a, b M) (ok bool) {
 	for k, av := range a {
 		bv, ok := b[k]
 		if ok && av != bv {

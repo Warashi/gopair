@@ -50,7 +50,7 @@ func TestGenerate(t *testing.T) {
 	}
 }
 
-func includes(set []map[string]int, elem map[string]int) bool {
+func includes(set []gopair.Candidate, elem map[string]int) bool {
 loop:
 	for _, s := range set {
 		for k, v := range elem {
