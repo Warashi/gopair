@@ -54,14 +54,6 @@ func (s Seeds) Generate(order int) []Candidate {
 	return combs
 }
 
-func copyMap[K comparable, V any](src map[K]V) map[K]V {
-	dst := make(map[K]V, len(src))
-	for k, v := range src {
-		dst[k] = v
-	}
-	return dst
-}
-
 func (s Seeds) comb(keys []string) []Candidate {
 	if len(keys) == 0 {
 		return make([]Candidate, 1)
@@ -72,7 +64,10 @@ func (s Seeds) comb(keys []string) []Candidate {
 	k := keys[0]
 	for _, v := range indices(s[k]) {
 		for _, m := range mid {
-			m := copyMap(m)
+			m := maps.Clone(m)
+			if m == nil {
+				m = make(Candidate)
+			}
 			m[k] = v
 			combinations = append(combinations, m)
 		}
@@ -97,8 +92,8 @@ func compact(s []Candidate, keys []string) []Candidate {
 	if maxScore == math.MinInt {
 		return s
 	}
-	i, j := maxScoreI, maxScoreJ
-	merged := merge(s[i], s[j])
+
+	merged := merge(s[maxScoreI], s[maxScoreJ])
 	for i := 0; i < len(s); {
 		if contains(merged, s[i]) {
 			s[i] = s[len(s)-1]
@@ -130,10 +125,6 @@ func compact(s []Candidate, keys []string) []Candidate {
 }
 
 func score(s []Candidate, i, j int) (score int) {
-	if len(s) < 100 {
-		return scoreHeavy(s, i, j)
-	}
-
 	merged := merge(s[i], s[j])
 	for _, s := range s {
 		if contains(merged, s) {
@@ -141,23 +132,6 @@ func score(s []Candidate, i, j int) (score int) {
 		}
 	}
 
-	return score
-}
-
-func scoreHeavy(s []Candidate, i, j int) int {
-	s = slices.Clone(s)
-	s[i] = merge(s[i], s[j])
-	s[j] = s[len(s)-1]
-	s = s[:len(s)-1]
-
-	var score int
-	for i := 0; i < len(s); i++ {
-		for j := i + 1; j < len(s); j++ {
-			if mergable(s[i], s[j]) {
-				score++
-			}
-		}
-	}
 	return score
 }
 
@@ -175,8 +149,7 @@ func contains[K comparable, V comparable, M ~map[K]V](large, small M) bool {
 
 func mergable[K comparable, V comparable, M ~map[K]V](a, b M) (ok bool) {
 	for k, av := range a {
-		bv, ok := b[k]
-		if ok && av != bv {
+		if bv, ok := b[k]; ok && av != bv {
 			return false
 		}
 	}
@@ -184,9 +157,7 @@ func mergable[K comparable, V comparable, M ~map[K]V](a, b M) (ok bool) {
 }
 
 func merge[K comparable, V any, M ~map[K]V](a, b M) M {
-	r := copyMap(a)
-	for k, v := range b {
-		r[k] = v
-	}
-	return r
+	a = maps.Clone(a)
+	maps.Copy(a, b)
+	return a
 }
