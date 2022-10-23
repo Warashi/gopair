@@ -119,17 +119,18 @@ func compact(s []Candidate, b map[string]int) ([]Candidate, map[string]int) {
 	return s, bias(s)
 }
 
-func score(s []Candidate, b map[string]int, i, j int) int {
+func score(s []Candidate, b map[string]int, i, j int) (score int) {
 	if len(s) < 100 {
 		return scoreHeavy(s, i, j)
 	}
-	var score int
-	for k := range s[i] {
-		score += b[k]
+
+	merged := merge(s[i], s[j])
+	for _, s := range s {
+		if contains(merged, s) {
+			score++
+		}
 	}
-	for k := range s[j] {
-		score += b[k]
-	}
+
 	return score
 }
 
