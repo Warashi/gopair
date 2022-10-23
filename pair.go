@@ -106,9 +106,16 @@ func compact(s []Candidate, b map[string]int) ([]Candidate, map[string]int) {
 		return s, b
 	}
 	i, j := maxScoreI, maxScoreJ
-	s[i] = merge(s[i], s[j])
-	s[j] = s[len(s)-1]
-	s = s[:len(s)-1]
+	merged := merge(s[i], s[j])
+	for i := 0; i < len(s); {
+		if contains(merged, s[i]) {
+			s[i] = s[len(s)-1]
+			s = s[:len(s)-1]
+			continue
+		}
+		i++
+	}
+	s = append(s, merged)
 	return s, bias(s)
 }
 
@@ -151,6 +158,18 @@ func bias(s []Candidate) map[string]int {
 		}
 	}
 	return score
+}
+
+func contains[K comparable, V comparable, M ~map[K]V](large, small M) bool {
+	if len(large) < len(small) {
+		return false
+	}
+	for k, v := range small {
+		if vv, ok := large[k]; !ok || v != vv {
+			return false
+		}
+	}
+	return true
 }
 
 func mergable[K comparable, V comparable, M ~map[K]V](a, b M) (ok bool) {
