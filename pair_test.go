@@ -64,6 +64,7 @@ loop:
 }
 
 func TestGenerate2(t *testing.T) {
+	//	t.Skip()
 	s := gopair.Seeds{
 		"a": 5,
 		"b": 5,

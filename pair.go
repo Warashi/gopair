@@ -1,7 +1,6 @@
 package gopair
 
 import (
-	"encoding/json"
 	"log"
 	"math"
 
@@ -13,11 +12,6 @@ type (
 	Seeds     map[string]int
 	Candidate map[string]int
 )
-
-func (c Candidate) String() string {
-	b, _ := json.Marshal(c)
-	return string(b)
-}
 
 func (s Seeds) Generate(order int) []Candidate {
 	if len(s) < order {
@@ -38,12 +32,9 @@ func (s Seeds) Generate(order int) []Candidate {
 		combs = append(combs, s.comb(k)...)
 	}
 
-	bias := bias(combs)
-
 	for {
 		log.Println(len(combs))
-		var newc []Candidate
-		newc, bias = compact(combs, bias)
+		newc := compact(combs, keys)
 		if len(newc) == len(combs) {
 			break
 		}
@@ -89,21 +80,22 @@ func (s Seeds) comb(keys []string) []Candidate {
 	return combinations
 }
 
-func compact(s []Candidate, b map[string]int) ([]Candidate, map[string]int) {
+func compact(s []Candidate, keys []string) []Candidate {
 	log.Println(len(s))
+
 	maxScore, maxScoreI, maxScoreJ := math.MinInt, 0, 0
 	for i := 0; i < len(s); i++ {
 		for j := i + 1; j < len(s); j++ {
 			if !mergable(s[i], s[j]) {
 				continue
 			}
-			if score := score(s, b, i, j); maxScore < score {
+			if score := score(s, i, j); maxScore < score {
 				maxScore, maxScoreI, maxScoreJ = score, i, j
 			}
 		}
 	}
 	if maxScore == math.MinInt {
-		return s, b
+		return s
 	}
 	i, j := maxScoreI, maxScoreJ
 	merged := merge(s[i], s[j])
@@ -116,10 +108,28 @@ func compact(s []Candidate, b map[string]int) ([]Candidate, map[string]int) {
 		i++
 	}
 	s = append(s, merged)
-	return s, bias(s)
+
+	slices.SortFunc(s, func(a, b Candidate) bool {
+		for _, k := range keys {
+			av, aok := a[k]
+			bv, bok := b[k]
+			if aok && bok && av != bv {
+				return av < bv
+			}
+			if aok && !bok {
+				return true
+			}
+			if !aok && bok {
+				return false
+			}
+		}
+		return true
+	})
+
+	return s
 }
 
-func score(s []Candidate, b map[string]int, i, j int) (score int) {
+func score(s []Candidate, i, j int) (score int) {
 	if len(s) < 100 {
 		return scoreHeavy(s, i, j)
 	}
@@ -151,16 +161,6 @@ func scoreHeavy(s []Candidate, i, j int) int {
 	return score
 }
 
-func bias(s []Candidate) map[string]int {
-	score := make(map[string]int)
-	for _, ss := range s {
-		for k := range ss {
-			score[k]++
-		}
-	}
-	return score
-}
-
 func contains[K comparable, V comparable, M ~map[K]V](large, small M) bool {
 	if len(large) < len(small) {
 		return false
@@ -183,7 +183,7 @@ func mergable[K comparable, V comparable, M ~map[K]V](a, b M) (ok bool) {
 	return true
 }
 
-func merge[K comparable, V any](a, b map[K]V) map[K]V {
+func merge[K comparable, V any, M ~map[K]V](a, b M) M {
 	r := copyMap(a)
 	for k, v := range b {
 		r[k] = v
