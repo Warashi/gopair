@@ -1,7 +1,6 @@
 package gopair
 
 import (
-	"log"
 	"math"
 
 	"golang.org/x/exp/maps"
@@ -33,7 +32,6 @@ func (s Seeds) Generate(order int) []Candidate {
 	}
 
 	for {
-		log.Println(len(combs))
 		newc := compact(combs, keys)
 		if len(newc) == len(combs) {
 			break
@@ -50,7 +48,6 @@ func (s Seeds) Generate(order int) []Candidate {
 			}
 		}
 	}
-	log.Println("ゼロ埋めの数", count)
 	return combs
 }
 
@@ -76,7 +73,6 @@ func (s Seeds) comb(keys []string) []Candidate {
 }
 
 func compact(s []Candidate, keys []string) []Candidate {
-	log.Println(len(s))
 
 	maxScore, maxScoreI, maxScoreJ := math.MinInt, 0, 0
 	for i := 0; i < len(s); i++ {
