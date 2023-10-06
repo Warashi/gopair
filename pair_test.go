@@ -1,13 +1,11 @@
-package gopair_test
+package gopair
 
 import (
 	"testing"
-
-	"github.com/Warashi/gopair"
 )
 
 func TestGenerate(t *testing.T) {
-	s := gopair.Seeds{
+	s := Seeds{
 		"a": 3,
 		"b": 3,
 		"c": 3,
@@ -50,22 +48,22 @@ func TestGenerate(t *testing.T) {
 	}
 }
 
-func includes(set []gopair.Candidate, elem map[string]int) bool {
-loop:
+func includes(set []Candidate, elem map[string]int) bool {
+	kv := make([]KV[string, int], 0, len(elem))
+	for k, v := range elem {
+		kv = append(kv, KV[string, int]{k, v})
+	}
 	for _, s := range set {
-		for k, v := range elem {
-			if s[k] != v {
-				continue loop
-			}
+		if contains(s, kv) {
+			return true
 		}
-		return true
 	}
 	return false
 }
 
 func TestGenerate2(t *testing.T) {
 	//	t.Skip()
-	s := gopair.Seeds{
+	s := Seeds{
 		"a": 5,
 		"b": 5,
 		"c": 5,
